@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { COLS, CATEGORICAL, DEFAULT_VISIBLE, labelOf, typeOf } from '@/lib/columns';
+import PlanDiagram from './PlanDiagram';
 
 type Filter = { col: string; op: string; val: string };
 const NUM_OPS = ['=', '>', '<', '>=', '<='], TXT_OPS = ['Contains', 'Equals', 'Not Contains', 'Not Equals'];
@@ -144,6 +145,7 @@ export default function AnalyzerView() {
           <h3 style={{ marginTop: 16 }}>Memori per worker node</h3>
           {nodes.length ? <div className="tablewrap"><table><thead><tr><th>Worker node</th><th>Peak memory</th></tr></thead><tbody>{nodes.map(([n, m]: string[]) => <tr key={n} style={{ cursor: 'default' }}><td>{n}</td><td>{m}</td></tr>)}</tbody></table></div>
             : <p className="muted">Tidak ada data memori per node untuk query ini.</p>}
+          {detail.plan && <PlanDiagram plan={detail.plan} />}
           <div className="grid4" style={{ marginTop: 16, gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))' }}>
             <div><h3>Semua field Summary ({Object.keys(detail.summary || {}).length})</h3>
               <div style={{ maxHeight: 360, overflow: 'auto' }}>{Object.entries(detail.summary || {}).map(([k, v]) => <KV key={k} k={k} v={v} />)}</div></div>

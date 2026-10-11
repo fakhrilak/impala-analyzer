@@ -148,10 +148,17 @@ export default function AnalyzerView() {
             <div><h3>Data Cache</h3><KV k="Hit Bytes" v={detail.data_cache_hit_bytes_mb + ' MB'} /><KV k="Miss Bytes" v={detail.data_cache_miss_bytes_mb + ' MB'} /><KV k="Hit Count" v={detail.data_cache_hit_count} /><KV k="Miss Count" v={detail.data_cache_miss_count} /></div>
             <div><h3>Spill & Storage</h3><KV k="Scratch Written" v={detail.scratch_bytes_written_mb + ' MB'} /><KV k="Scratch Read" v={detail.scratch_bytes_read_mb + ' MB'} /><KV k="File Used" v={detail.scratch_file_used_bytes_mb + ' MB'} /><KV k="Write IO Bytes" v={detail.write_io_bytes_mb + ' MB'} /></div>
           </div>
-          <h3 style={{ marginTop: 16 }}>Memory per Worker Node</h3>
+          <h3 style={{ marginTop: 60, display: 'flex', alignItems: 'center', gap: 8 }}>
+            Memory per Worker Node
+            {nodes.length > 0 && (
+              <span style={{ fontSize: 13, fontWeight: 'normal', color: '#8A94A6', background: '#192027', padding: '2px 8px', borderRadius: 12, border: '1px solid #232b35' }}>
+                {nodes.length - 1} Executors
+              </span>
+            )}
+          </h3>
           {nodes.length ? <div className="tablewrap"><table><thead><tr><th>Worker Node</th><th>Peak Memory</th></tr></thead><tbody>{nodes.map(([n, m]: string[]) => <tr key={n} style={{ cursor: 'default' }}><td>{n}</td><td>{m}</td></tr>)}</tbody></table></div>
             : <p className="muted">No per-node memory data available for this query.</p>}
-          <div className="grid4" style={{ marginTop: 16, gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))' }}>
+          <div className="grid4" style={{ marginTop: 60, gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))' }}>
             <div><h3>All Summary Fields ({Object.keys(detail.summary || {}).length})</h3>
               <div style={{ maxHeight: 360, overflow: 'auto' }}>{Object.entries(detail.summary || {}).map(([k, v]) => <KV key={k} k={k} v={v} />)}</div></div>
             <div><h3>All Counters ({Object.keys(detail.counters || {}).length})</h3>

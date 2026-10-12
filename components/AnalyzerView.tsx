@@ -1,12 +1,14 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
-import { COLS, CATEGORICAL, DEFAULT_VISIBLE, labelOf, typeOf } from '@/lib/columns';
+// import { COLS, CATEGORICAL, DEFAULT_VISIBLE, labelOf, typeOf } from '@/lib/columns';
+import { COLS, CATEGORICAL, DEFAULT_VISIBLE, DATE_OPS, isDateField, labelOf, typeOf } from '@/lib/columns';
 import PlanDiagram from './PlanDiagram';
 import Modal from './Modal';
 
 type Filter = { col: string; op: string; val: string };
-const NUM_OPS = ['=', '>', '<', '>=', '<='], TXT_OPS = ['Contains', 'Equals', 'Not Contains', 'Not Equals'];
+// const NUM_OPS = ['=', '>', '<', '>=', '<='], TXT_OPS = ['Contains', 'Equals', 'Not Contains', 'Not Equals'];
+const NUM_OPS = ['=', '!=', '>', '<', '>=', '<='], TXT_OPS = ['Contains', 'Equals', 'Not Contains', 'Not Equals'];
 const PAGE = 50;
 
 const KV = ({ k, v }: { k: string; v: any }) => <div className="kv"><span className="muted">{k}</span><b>{v === null || v === undefined || v === '' ? '-' : String(v)}</b></div>;
@@ -57,12 +59,25 @@ export default function AnalyzerView() {
     api(`/api/queries/detail?cluster=${sel._cid}&qid=${encodeURIComponent(sel._qid)}`).then(setDetail).catch((e) => setErr(e.message));
   }, [sel]);
 
+  // const addFilter = () => {
+  //   if (!draft.val.trim()) return setErr('Filter value cannot be empty.');
+  //   if (typeOf(draft.col) === 'num' && !isFinite(Number(draft.val))) return setErr('Value must be a number.');
+  //   setErr(''); setFilters([...filters, { ...draft, val: draft.val.trim() }]); setPage(1); setDraft({ ...draft, val: '' });
+  // };
   const addFilter = () => {
-    if (!draft.val.trim()) return setErr('Filter value cannot be empty.');
-    if (typeOf(draft.col) === 'num' && !isFinite(Number(draft.val))) return setErr('Value must be a number.');
-    setErr(''); setFilters([...filters, { ...draft, val: draft.val.trim() }]); setPage(1); setDraft({ ...draft, val: '' });
+    const v = draft.val.trim();
+    if (isDateField(draft.col)) {
+      const parts = v.split('|');
+      if (!parts.every((p) => /^\d{4}-\d{2}-\d{2}$/.test(p)) || (draft.op === 'Between' && parts.length !== 2)) return setErr('Pilih tanggal dari kalender.');
+    } else {
+      if (!v) return setErr('Nilai filter tidak boleh kosong.');
+      if (typeOf(draft.col) === 'num' && !isFinite(Number(v))) return setErr('Nilai harus berupa angka.');
+    }
+    setErr(''); setFilters([...filters, { ...draft, val: v }]); setPage(1); setDraft({ ...draft, val: '' });
   };
-  const changeCol = (col: string) => setDraft({ col, op: typeOf(col) === 'num' ? '=' : 'Contains', val: '' });
+
+  // const changeCol = (col: string) => setDraft({ col, op: typeOf(col) === 'num' ? '=' : 'Contains', val: '' });
+  const changeCol = (col: string) => setDraft({ col, op: isDateField(col) ? 'On' : typeOf(col) === 'num' ? '=' : 'Contains', val: '' });
   const toggleCol = (k: string) => setVisible(visible.includes(k) ? visible.filter((x) => x !== k) : [...visible, k]);
   const sortBy = (col: string) => { setPage(1); setSort(sort?.col === col ? { col, dir: sort.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'desc' }); };
   const exportCsv = async () => {
@@ -102,16 +117,24 @@ export default function AnalyzerView() {
       <section className="panel">
         <h3>Filters</h3>
         {filters.map((f, i) => (
-          <div className="rule" key={i}><b>{labelOf(f.col)}</b><code>{f.op}</code><i>{f.val}</i>
+          <div className="rule" key={i}><b>{labelOf(f.col)}</b><code>{f.op}</code><i>{f.val.replace('|', ' to ')}</i>
             <button aria-label="Remove filter" onClick={() => { setFilters(filters.filter((_, j) => j !== i)); setPage(1); }}>✕</button></div>))}
         <div className="row" style={{ marginTop: 8 }}>
           <label className="grow" style={{ flex: 2 }}>Field<select value={draft.col} onChange={(e) => changeCol(e.target.value)}>
             {allFields.map((k) => <option key={k} value={k}>{labelOf(k)}</option>)}</select></label>
-          <label style={{ width: 150 }}>Operator<select value={draft.op} onChange={(e) => setDraft({ ...draft, op: e.target.value })}>
-            {(typeOf(draft.col) === 'num' ? NUM_OPS : TXT_OPS).map((o) => <option key={o}>{o}</option>)}</select></label>
-          <label className="grow" style={{ flex: 2 }}>Value{isCat
-            ? <select value={draft.val} onChange={(e) => setDraft({ ...draft, val: e.target.value })}><option value="">Select...</option>{catVals.map((v) => <option key={v}>{v}</option>)}</select>
-            : <input value={draft.val} placeholder={typeOf(draft.col) === 'num' ? 'Number' : ''} onChange={(e) => setDraft({ ...draft, val: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && addFilter()} />}</label>
+           <label style={{ width: 150 }}>Operator<select value={draft.op} onChange={(e) => setDraft({ ...draft, op: e.target.value, val: '' })}>
+            {(isDateField(draft.col) ? DATE_OPS : typeOf(draft.col) === 'num' ? NUM_OPS : TXT_OPS).map((o) => <option key={o}>{o}</option>)}</select></label>
+          <label className="grow" style={{ flex: 2 }}>Value{isDateField(draft.col)
+            ? (draft.op === 'Between'
+              ? <span className="row" style={{ flexWrap: 'nowrap', alignItems: 'center' }}>
+                  <input type="date" value={draft.val.split('|')[0] || ''} onChange={(e) => setDraft({ ...draft, val: e.target.value + '|' + (draft.val.split('|')[1] || '') })} />
+                  <span className="muted">to</span>
+                  <input type="date" value={draft.val.split('|')[1] || ''} onChange={(e) => setDraft({ ...draft, val: (draft.val.split('|')[0] || '') + '|' + e.target.value })} />
+                </span>
+              : <input type="date" value={draft.val} onChange={(e) => setDraft({ ...draft, val: e.target.value })} />)
+            : isCat
+              ? <select value={draft.val} onChange={(e) => setDraft({ ...draft, val: e.target.value })}><option value="">Select...</option>{catVals.map((v) => <option key={v}>{v}</option>)}</select>
+              : <input value={draft.val} placeholder={typeOf(draft.col) === 'num' ? 'Number' : ''} onChange={(e) => setDraft({ ...draft, val: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && addFilter()} />}</label>
           <button className="primary" onClick={addFilter}>Add Filter</button>
         </div>
         {err && <p className="err">{err}</p>}

@@ -36,3 +36,5 @@ export function typeOf(k: string): 'text' | 'num' {
   if (k.startsWith('summary.') || k === 'cluster') return 'text';
   return COLS.find((c) => c.key === k)?.type || 'text';
 }
+export const DATE_OPS = ['On', 'Before', 'After', 'On or Before', 'On or After', 'Between'];
+export const isDateField = (k: string) => k === 'start_time' || /^summary\.(Start|End) Time$/.test(k);

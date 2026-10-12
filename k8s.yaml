@@ -35,7 +35,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: app
-          image: storage.zilog.zil:5000/impala-analyzer:1.0.0
+          image: storage.zilog.zil:5000/impala-analyzer:1.0.1
           ports:
             - containerPort: 3000
           env:
